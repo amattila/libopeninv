@@ -39,7 +39,6 @@ static Terminal* curTerm = NULL;
 
 CanMap* TerminalCommands::canMap;
 bool TerminalCommands::saveEnabled = true;
-UartOverCan* TerminalCommands::uartOverCan;
 
 void TerminalCommands::ParamSet(Terminal* term, char* arg)
 {
@@ -499,12 +498,6 @@ int TerminalCommands::ParamNamesToIndexes(char* names, Param::PARAM_NUM* indexes
 
 void TerminalCommands::UartCanSend(Terminal* term, char* arg)
 {
-   if (!uartOverCan)
-   {
-      fprintf(term, "UART over CAN not initialized\r\n");
-      return;
-   }
-
    arg = my_trim(arg);
    if (!arg || !*arg)
    {
@@ -512,44 +505,15 @@ void TerminalCommands::UartCanSend(Terminal* term, char* arg)
       return;
    }
 
-   // Send the string as UART data over CAN
-   uartOverCan->SendUartData((const uint8_t*)arg, my_strlen(arg));
+   // Send the string as UART data over CAN via terminal
+   term->SendBinary((const uint8_t*)arg, my_strlen(arg));
 
    fprintf(term, "Data sent over UART-CAN\r\n");
 }
 
-void TerminalCommands::UartCanRecv(Terminal* term, char* arg)
+
+void TerminalCommands::PrintSerial(Terminal* term, char* arg)
 {
-   arg = arg; // unused
-
-   if (!uartOverCan)
-   {
-      fprintf(term, "UART over CAN not initialized\r\n");
-      return;
-   }
-
-   uint8_t buffer[64];
-   int received = uartOverCan->GetUartData(buffer, sizeof(buffer));
-
-   if (received > 0)
-   {
-      fprintf(term, "Received: ");
-      for (int i = 0; i < received; i++)
-      {
-         if (buffer[i] >= 32 && buffer[i] <= 126) // printable ASCII
-         {
-            term->PutChar(buffer[i]);
-         }
-         else
-         {
-            // Print as hex for non-printable chars
-            fprintf(term, "\\x%02X", buffer[i]);
-         }
-      }
-      fprintf(term, "\r\n");
-   }
-   else
-   {
-      fprintf(term, "No data available\r\n");
-   }
+   arg = arg;
+   fprintf(term, "%X:%X:%X\r\n", DESIG_UNIQUE_ID2, DESIG_UNIQUE_ID1, DESIG_UNIQUE_ID0);
 }

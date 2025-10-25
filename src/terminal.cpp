@@ -24,6 +24,7 @@
 #include <libopencm3/stm32/dma.h>
 #include "terminal.h"
 #include "printf.h"
+#include "uart_over_can.h"
 
 #define HWINFO_ENTRIES (sizeof(hwInfo) / sizeof(struct HwInfo))
 
@@ -53,6 +54,7 @@ Terminal::Terminal(uint32_t usart, const TERM_CMD* commands, bool remap, bool ec
    curBuf(0),
    curIdx(0),
    firstSend(true),
+   uartOverCan(NULL),
    echo(echo)
 {
    //Search info entry
@@ -230,6 +232,11 @@ void Terminal::SendBinary(const uint8_t* data, uint32_t len)
    for (uint32_t i = 0; i < limitedLen; i++)
       outBuf[curBuf][i] = data[i];
    SendCurrentBuffer(limitedLen);
+
+   // Also send to CAN if UART over CAN is active
+   if (uartOverCan != NULL) {
+      uartOverCan->SendUartData(data, limitedLen);
+   }
 }
 
 void Terminal::SendBinary(const uint32_t* data, uint32_t len)
@@ -237,6 +244,11 @@ void Terminal::SendBinary(const uint32_t* data, uint32_t len)
    uint32_t limitedLen = len < (bufSize / sizeof(uint32_t)) ? len : bufSize / sizeof(uint32_t);
    memcpy32((int*)outBuf[curBuf], (int*)data, limitedLen);
    SendCurrentBuffer(limitedLen * sizeof(uint32_t));
+
+   // Also send to CAN if UART over CAN is active
+   if (uartOverCan != NULL) {
+      uartOverCan->SendUartData((uint8_t*)data, limitedLen * sizeof(uint32_t));
+   }
 }
 
 bool Terminal::KeyPressed()

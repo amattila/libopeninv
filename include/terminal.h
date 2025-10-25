@@ -22,6 +22,7 @@
 #include "printf.h"
 
 class Terminal;
+class UartOverCan;
 
 typedef struct
 {
@@ -41,6 +42,7 @@ public:
    bool KeyPressed();
    void FlushInput();
    void DisableTxDMA();
+   void SetUartOverCan(class UartOverCan* uoc) { uartOverCan = uoc; }
    static Terminal* defaultTerminal;
 
 private:
@@ -64,6 +66,7 @@ private:
    void Send(const char *str);
    void SendCurrentBuffer(uint32_t len);
 
+   UartOverCan* uartOverCan;
    static const int bufSize = 128;
    static const HwInfo hwInfo[];
    const HwInfo* hw;
