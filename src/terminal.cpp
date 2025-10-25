@@ -420,13 +420,23 @@ void Terminal::Send(const char *str)
 
 void Terminal::SendCurrentBuffer(uint32_t len)
 {
-   while (!dma_get_interrupt_flag(hw->dmactl, hw->dmatx, DMA_TCIF) && !firstSend);
+   // Send to UART only if command came from UART
+   if (!currentCommandFromCan)
+   {
+      while (!dma_get_interrupt_flag(hw->dmactl, hw->dmatx, DMA_TCIF) && !firstSend);
 
-   dma_disable_channel(hw->dmactl, hw->dmatx);
-   dma_set_number_of_data(hw->dmactl, hw->dmatx, len);
-   dma_set_memory_address(hw->dmactl, hw->dmatx, (uint32_t)outBuf[curBuf]);
-   dma_clear_interrupt_flags(hw->dmactl, hw->dmatx, DMA_TCIF);
-   dma_enable_channel(hw->dmactl, hw->dmatx);
+      dma_disable_channel(hw->dmactl, hw->dmatx);
+      dma_set_number_of_data(hw->dmactl, hw->dmatx, len);
+      dma_set_memory_address(hw->dmactl, hw->dmatx, (uint32_t)outBuf[curBuf]);
+      dma_clear_interrupt_flags(hw->dmactl, hw->dmatx, DMA_TCIF);
+      dma_enable_channel(hw->dmactl, hw->dmatx);
+   }
+
+   // Send to CAN only if command came from CAN
+   if (currentCommandFromCan && uartOverCan != NULL)
+   {
+      uartOverCan->SendUartData((const uint8_t*)outBuf[curBuf], len);
+   }
 
    curBuf = !curBuf; //switch buffers
    firstSend = false; //only needed once so we don't get stuck in the while loop above
