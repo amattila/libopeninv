@@ -15,6 +15,7 @@ UartOverCan::UartOverCan(CanHardware* can)
 void UartOverCan::Init()
 {
     m_can->AddCallback(this);
+    m_can->RegisterUserMessage(UART_CAN_RX_ID);
 }
 
 void UartOverCan::SendUartData(const uint8_t* data, uint32_t length)
