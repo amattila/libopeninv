@@ -24,11 +24,11 @@ void UartOverCan::SendUartData(const uint8_t* data, uint32_t length)
 
     while (sent < length)
     {
-        uint8_t chunkSize = (length - sent) > 7 ? 7 : (uint8_t)(length - sent);
+        uint8_t chunkSize = (length - sent) > 6 ? 6 : (uint8_t)(length - sent);
         bool isLast = (sent + chunkSize >= length);
         uint8_t canData[8] = {0};
 
-        // SEQ + LEN_FLAGS format as per spec
+        // SEQ + LEN_FLAGS format as per spec (max 6 bytes data)
         canData[0] = seq++;
         canData[1] = (chunkSize & 0x0F) | (isLast ? 0x80 : 0x00);
         memcpy(&canData[2], &data[sent], chunkSize);
@@ -66,8 +66,8 @@ bool UartOverCan::HandleRx(uint32_t canId, uint32_t data[2], uint8_t dlc)
         uint8_t n = lf & 0x0F;
         bool last = (lf & 0x80) != 0;
 
-        // Validate frame as per spec
-        if (n > 7 || (2 + n) > dlc)
+        // Validate frame as per spec (max 6 bytes data)
+        if (n > 6 || (2 + n) > dlc)
         {
             m_rxBufferPos = 0; // Reset on invalid frame
             return true;
