@@ -19,6 +19,7 @@
 #ifndef TERMINALCOMMANDS_H
 #define TERMINALCOMMANDS_H
 #include "canmap.h"
+#include "uart_over_can.h"
 
 class TerminalCommands
 {
@@ -34,7 +35,10 @@ class TerminalCommands
       static void SaveParameters(Terminal* term, char *arg);
       static void LoadParameters(Terminal* term, char *arg);
       static void Reset(Terminal* term, char *arg);
+      static void UartCanSend(Terminal* term, char* arg);
+      static void UartCanRecv(Terminal* term, char* arg);
       static void SetCanMap(CanMap* m) { canMap = m; }
+      static void SetUartOverCan(UartOverCan* u) { uartOverCan = u; }
       static void EnableSaving() { saveEnabled = true; }
       static void DisableSaving() { saveEnabled = false; }
 
@@ -45,6 +49,7 @@ class TerminalCommands
       static int ParamNamesToIndexes(char* names, Param::PARAM_NUM* indexes, uint32_t maxIndexes);
       static CanMap* canMap;
       static bool saveEnabled;
+      static UartOverCan* uartOverCan;
 };
 
 #endif // TERMINALCOMMANDS_H
