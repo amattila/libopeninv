@@ -16,6 +16,10 @@ void UartOverCan::Init()
 {
     m_can->AddCallback(this);
     m_can->RegisterUserMessage(UART_CAN_RX_ID);
+    
+    // Send init ACK to show we're alive
+    uint32_t initData[2] = {0x494E4954, 0x00000000}; // "INIT"
+    m_can->Send(0x702, initData, 4);
 }
 
 void UartOverCan::SendUartData(const uint8_t* data, uint32_t length)
