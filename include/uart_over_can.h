@@ -22,6 +22,7 @@ private:
     uint32_t m_rxBufferPos;
     uint8_t m_txBuffer[256];
     uint32_t m_txBufferPos;
+    uint8_t m_expectedSeq;
 };
 
 #endif // UART_OVER_CAN_H
