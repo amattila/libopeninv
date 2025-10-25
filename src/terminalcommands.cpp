@@ -304,6 +304,7 @@ void TerminalCommands::MapCan(Terminal* term, char *arg)
       while (curTerm != NULL); //lock
       curTerm = term;
       canMap->IterateCanMap(PrintCanMap);
+      fprintf(term, "OK\r\n");
       curTerm = NULL;
       return;
    }
@@ -495,7 +496,6 @@ int TerminalCommands::ParamNamesToIndexes(char* names, Param::PARAM_NUM* indexes
 
    return curIndex;
 }
-
 
 void TerminalCommands::PrintSerial(Terminal* term, char* arg)
 {

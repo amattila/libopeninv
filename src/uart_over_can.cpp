@@ -61,6 +61,10 @@ bool UartOverCan::HandleRx(uint32_t canId, uint32_t data[2], uint8_t dlc)
 {
     if (canId == UART_CAN_RX_ID && dlc >= 2)
     {
+        // Send ACK immediately to show we received the message
+        uint32_t ackData[2] = {0, 0};
+        m_can->Send(0x702, ackData, 0);
+        
         uint8_t* canData = (uint8_t*)data;
         uint8_t seq = canData[0];
         uint8_t lf = canData[1];
@@ -71,7 +75,7 @@ bool UartOverCan::HandleRx(uint32_t canId, uint32_t data[2], uint8_t dlc)
         if (n > 6 || (2 + n) > dlc)
         {
             m_rxBufferPos = 0; // Reset on invalid frame
-            return true;
+            return true; // We handled this message (even if invalid)
         }
 
         // Resync logic: reset if unexpected sequence
@@ -90,7 +94,7 @@ bool UartOverCan::HandleRx(uint32_t canId, uint32_t data[2], uint8_t dlc)
         if (m_rxBufferPos + n > sizeof(m_rxBuffer))
         {
             m_rxBufferPos = 0; // Reset on overflow
-            return true;
+            return true; // We handled this message (even if overflow)
         }
 
         // Copy data
@@ -102,8 +106,10 @@ bool UartOverCan::HandleRx(uint32_t canId, uint32_t data[2], uint8_t dlc)
         {
             // Data is ready for reading via GetUartData()
         }
+        
+        return true; // Stop callback chain - we handled this message
     }
-    return true; // Continue processing other callbacks
+    return false; // Not our message, let other callbacks handle it
 }
 
 void UartOverCan::HandleClear()
