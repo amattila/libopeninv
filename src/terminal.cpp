@@ -370,3 +370,19 @@ extern "C" void putchar(int c)
 {
    Terminal::defaultTerminal->PutChar(c);
 }
+
+void Terminal::PutInputChar(char c)
+{
+   // Simulate UART input by writing directly to DMA input buffer
+   // This mimics what UART RX DMA would do
+
+   int unusedBytes = dma_get_number_of_data(hw->dmactl, hw->dmarx);
+   int currentIdx = bufSize - unusedBytes;
+
+   if (currentIdx < bufSize)
+   {
+      inBuf[currentIdx] = c;
+      // Decrease DMA counter to simulate received byte
+      dma_set_number_of_data(hw->dmactl, hw->dmarx, unusedBytes - 1);
+   }
+}

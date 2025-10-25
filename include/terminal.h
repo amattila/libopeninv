@@ -43,6 +43,7 @@ public:
    void FlushInput();
    void DisableTxDMA();
    void SetUartOverCan(class UartOverCan* uoc) { uartOverCan = uoc; }
+   void PutInputChar(char c); // Add input character from CAN
    static Terminal* defaultTerminal;
 
 private:

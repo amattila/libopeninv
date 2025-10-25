@@ -35,7 +35,6 @@ class TerminalCommands
       static void SaveParameters(Terminal* term, char *arg);
       static void LoadParameters(Terminal* term, char *arg);
       static void Reset(Terminal* term, char *arg);
-      static void UartCanSend(Terminal* term, char* arg);
       static void PrintSerial(Terminal* term, char* arg);
       static void SetCanMap(CanMap* m) { canMap = m; }
       static void EnableSaving() { saveEnabled = true; }

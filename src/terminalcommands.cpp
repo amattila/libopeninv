@@ -496,21 +496,6 @@ int TerminalCommands::ParamNamesToIndexes(char* names, Param::PARAM_NUM* indexes
    return curIndex;
 }
 
-void TerminalCommands::UartCanSend(Terminal* term, char* arg)
-{
-   arg = my_trim(arg);
-   if (!arg || !*arg)
-   {
-      fprintf(term, "Usage: uartcansend <data>\r\n");
-      return;
-   }
-
-   // Send the string as UART data over CAN via terminal
-   term->SendBinary((const uint8_t*)arg, my_strlen(arg));
-
-   fprintf(term, "Data sent over UART-CAN\r\n");
-}
-
 
 void TerminalCommands::PrintSerial(Terminal* term, char* arg)
 {
