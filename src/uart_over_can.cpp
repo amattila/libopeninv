@@ -3,7 +3,7 @@
 #include <string.h>
 #include "printf.h"
 
-#define UART_CAN_BASE_ID 0x600
+#define UART_CAN_BASE_ID 0x700
 #define UART_CAN_TX_ID (UART_CAN_BASE_ID + 0)
 #define UART_CAN_RX_ID (UART_CAN_BASE_ID + 1)
 
