@@ -49,13 +49,15 @@ Terminal::Terminal(uint32_t usart, const TERM_CMD* commands, bool remap, bool ec
    nodeId(1),
    enabled(true),
    txDmaEnabled(true),
+   uartOverCan(NULL),
    pCurCmd(NULL),
    lastIdx(0),
    curBuf(0),
    curIdx(0),
    firstSend(true),
-   uartOverCan(NULL),
-   echo(echo)
+   echo(echo),
+   canInBufPos(0),
+   currentCommandFromCan(false)
 {
    //Search info entry
    hw = hwInfo;
@@ -113,6 +115,56 @@ void Terminal::Run()
    if (usart_get_flag(usart, USART_SR_ORE))
       usart_recv(usart); //Clear possible overrun
 
+   // Process CAN input buffer first (higher priority than UART)
+   if (canInBufPos > 0)
+   {
+      // Look for complete command (ending with \n or \r)
+      for (int i = 0; i < canInBufPos; i++)
+      {
+         if (canInBuf[i] == '\n' || canInBuf[i] == '\r')
+         {
+            // Found complete command, process it
+            canInBuf[i] = 0; // Null terminate
+            
+            char *space = (char*)my_strchr(canInBuf, ' ');
+            if (0 == *space)
+            {
+               args[0] = 0;
+            }
+            else
+            {
+               my_strcpy(args, space + 1);
+               *space = 0;
+            }
+            
+            const TERM_CMD *cmd = CmdLookup(canInBuf);
+            if (cmd != NULL)
+            {
+               usart_wait_send_ready(usart);
+               currentCommandFromCan = true; // Mark that this command came from CAN
+               cmd->CmdFunc(this, args);
+               currentCommandFromCan = false; // Reset after command execution
+            }
+            
+            // Remove processed command from buffer
+            int remaining = canInBufPos - i - 1;
+            if (remaining > 0)
+            {
+               for (int j = 0; j < remaining; j++)
+               {
+                  canInBuf[j] = canInBuf[i + 1 + j];
+               }
+               canInBufPos = remaining;
+            }
+            else
+            {
+               canInBufPos = 0;
+            }
+            break; // Process one command at a time
+         }
+      }
+   }
+
    if (currentIdx > 0)
    {
       if (inBuf[currentIdx - 1] == '\n' || inBuf[currentIdx - 1] == '\r')
@@ -164,6 +216,7 @@ void Terminal::Run()
             if (NULL != pCurCmd)
             {
                usart_wait_send_ready(usart);
+               currentCommandFromCan = false; // Mark that this command came from UART
                pCurCmd->CmdFunc(this, args);
             }
             else if (currentIdx > 1 && enabled)
@@ -231,10 +284,16 @@ void Terminal::SendBinary(const uint8_t* data, uint32_t len)
 
    for (uint32_t i = 0; i < limitedLen; i++)
       outBuf[curBuf][i] = data[i];
-   SendCurrentBuffer(limitedLen);
+   
+   // Send to UART only if command came from UART
+   if (!currentCommandFromCan)
+   {
+      SendCurrentBuffer(limitedLen);
+   }
 
-   // Also send to CAN if UART over CAN is active
-   if (uartOverCan != NULL) {
+   // Send to CAN only if command came from CAN
+   if (currentCommandFromCan && uartOverCan != NULL)
+   {
       uartOverCan->SendUartData(data, limitedLen);
    }
 }
@@ -243,11 +302,19 @@ void Terminal::SendBinary(const uint32_t* data, uint32_t len)
 {
    uint32_t limitedLen = len < (bufSize / sizeof(uint32_t)) ? len : bufSize / sizeof(uint32_t);
    memcpy32((int*)outBuf[curBuf], (int*)data, limitedLen);
-   SendCurrentBuffer(limitedLen * sizeof(uint32_t));
+   
+   uint32_t byteLen = limitedLen * sizeof(uint32_t);
+   
+   // Send to UART only if command came from UART
+   if (!currentCommandFromCan)
+   {
+      SendCurrentBuffer(byteLen);
+   }
 
-   // Also send to CAN if UART over CAN is active
-   if (uartOverCan != NULL) {
-      uartOverCan->SendUartData((uint8_t*)data, limitedLen * sizeof(uint32_t));
+   // Send to CAN only if command came from CAN
+   if (currentCommandFromCan && uartOverCan != NULL)
+   {
+      uartOverCan->SendUartData((uint8_t*)data, byteLen);
    }
 }
 
@@ -373,16 +440,9 @@ extern "C" void putchar(int c)
 
 void Terminal::PutInputChar(char c)
 {
-   // Simulate UART input by writing directly to DMA input buffer
-   // This mimics what UART RX DMA would do
-
-   int unusedBytes = dma_get_number_of_data(hw->dmactl, hw->dmarx);
-   int currentIdx = bufSize - unusedBytes;
-
-   if (currentIdx < bufSize)
+   // Store CAN data in separate buffer to avoid UART DMA conflicts
+   if (canInBufPos < bufSize - 1)
    {
-      inBuf[currentIdx] = c;
-      // Decrease DMA counter to simulate received byte
-      dma_set_number_of_data(hw->dmactl, hw->dmarx, unusedBytes - 1);
+      canInBuf[canInBufPos++] = c;
    }
 }

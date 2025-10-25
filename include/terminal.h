@@ -67,7 +67,6 @@ private:
    void Send(const char *str);
    void SendCurrentBuffer(uint32_t len);
 
-   UartOverCan* uartOverCan;
    static const int bufSize = 128;
    static const HwInfo hwInfo[];
    const HwInfo* hw;
@@ -77,6 +76,7 @@ private:
    uint8_t nodeId;
    bool enabled;
    bool txDmaEnabled;
+   UartOverCan* uartOverCan;
    const TERM_CMD *pCurCmd;
    int lastIdx;
    uint8_t curBuf;
@@ -86,6 +86,13 @@ private:
    char inBuf[bufSize];
    char outBuf[2][bufSize]; //double buffering
    char args[bufSize];
+   
+   // Separate input buffer for CAN data
+   char canInBuf[bufSize];
+   int canInBufPos;
+   
+   // Track the source of current command (true = CAN, false = UART)
+   bool currentCommandFromCan;
 };
 
 #endif // TERMINAL_H
